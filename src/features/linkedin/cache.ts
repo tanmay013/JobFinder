@@ -11,9 +11,34 @@ const EMPTY_STATE: LinkedInCacheState = {
   lastFetchedAt: null,
 };
 
+function isServerlessRuntime(): boolean {
+  return Boolean(
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.LAMBDA_TASK_ROOT ||
+      process.env.NETLIFY,
+  );
+}
+
+/** Writable base directory — `/tmp` on Netlify/Lambda, project root locally. */
+function getCacheBaseDir(): string {
+  const custom = process.env.LINKEDIN_CACHE_DIR?.trim();
+  if (custom) {
+    return path.isAbsolute(custom) ? custom : path.join(process.cwd(), custom);
+  }
+
+  if (isServerlessRuntime()) {
+    return path.join("/tmp", "job-finder");
+  }
+
+  return process.cwd();
+}
+
 function cachePath(role: JobRole): string {
   const file = getRoleLinkedInConfig(role).cacheFile;
-  return path.isAbsolute(file) ? file : path.join(process.cwd(), file);
+  if (path.isAbsolute(file)) {
+    return file;
+  }
+  return path.join(getCacheBaseDir(), file);
 }
 
 export function fetchIntervalMs(): number {
@@ -62,7 +87,7 @@ export async function readCache(
   const candidates = [cachePath(role)];
 
   if (role === "frontend") {
-    candidates.push(path.join(process.cwd(), "data", "linkedin-cache.json"));
+    candidates.push(path.join(getCacheBaseDir(), "data", "linkedin-cache.json"));
   }
 
   for (const file of candidates) {
