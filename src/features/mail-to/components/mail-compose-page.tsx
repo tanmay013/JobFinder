@@ -337,15 +337,6 @@ export function MailComposePage() {
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   className="flex-1"
-                  type="button"
-                  variant="outline"
-                  disabled={!mailtoLink}
-                  onClick={handleOpenMailApp}
-                >
-                  Open in mail app
-                </Button>
-                <Button
-                  className="flex-1"
                   variant="outline"
                   type="button"
                   onClick={handleCopy}
