@@ -1,0 +1,117 @@
+import { promises as fs } from "fs";
+import path from "path";
+import { getRoleLinkedInConfig, linkedInConfig } from "./config";
+import type { LinkedInCacheState } from "./types";
+import type { JobRole, RawPost } from "@/features/posts/types";
+
+const EMPTY_STATE: LinkedInCacheState = {
+  posts: [],
+  lastFetchedAt: null,
+};
+
+function cachePath(role: JobRole): string {
+  const file = getRoleLinkedInConfig(role).cacheFile;
+  return path.isAbsolute(file) ? file : path.join(process.cwd(), file);
+}
+
+export function fetchIntervalMs(): number {
+  return linkedInConfig.fetchIntervalHours * 60 * 60 * 1000;
+}
+
+export function hasLocalData(cache: LinkedInCacheState): boolean {
+  return cache.posts.length > 0;
+}
+
+export function isCacheFresh(lastFetchedAt: string | null): boolean {
+  if (!lastFetchedAt) return false;
+  const elapsed = Date.now() - new Date(lastFetchedAt).getTime();
+  return elapsed < fetchIntervalMs();
+}
+
+/** Decide whether to call Apify or serve from the local file. */
+export function shouldFetchFromApify(
+  cache: LinkedInCacheState,
+  refresh: boolean,
+): boolean {
+  // No local data — always fetch, regardless of interval or refresh flag
+  if (!hasLocalData(cache)) return true;
+
+  // Has local data but stale — fetch
+  if (!isCacheFresh(cache.lastFetchedAt)) return true;
+
+  // Has fresh local data — serve file (manual refresh also uses file)
+  void refresh;
+  return false;
+}
+
+export function getNextFetchAt(lastFetchedAt: string | null): string | null {
+  if (!lastFetchedAt) return null;
+  return new Date(
+    new Date(lastFetchedAt).getTime() + fetchIntervalMs(),
+  ).toISOString();
+}
+
+function normalizeCache(parsed: Record<string, unknown>): LinkedInCacheState {
+  return {
+    posts: Array.isArray(parsed.posts) ? (parsed.posts as RawPost[]) : [],
+    lastFetchedAt:
+      typeof parsed.lastFetchedAt === "string" ? parsed.lastFetchedAt : null,
+  };
+}
+
+export async function readCache(
+  role: JobRole = "frontend",
+): Promise<LinkedInCacheState> {
+  const candidates = [cachePath(role)];
+
+  if (role === "frontend") {
+    candidates.push(path.join(process.cwd(), "data", "linkedin-cache.json"));
+  }
+
+  for (const file of candidates) {
+    try {
+      const raw = await fs.readFile(file, "utf-8");
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const state = normalizeCache(parsed);
+
+      if (state.posts.length > 0) {
+        return state;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return { ...EMPTY_STATE };
+}
+
+export async function writeCache(
+  state: LinkedInCacheState,
+  role: JobRole = "frontend",
+): Promise<void> {
+  const file = cachePath(role);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, JSON.stringify(state, null, 2), "utf-8");
+}
+
+export function mergePosts(
+  existing: RawPost[],
+  incoming: RawPost[],
+  maxTotal: number,
+): RawPost[] {
+  const byId = new Map<string, RawPost>();
+
+  for (const post of existing) {
+    byId.set(post.postId, post);
+  }
+
+  for (const post of incoming) {
+    byId.set(post.postId, post);
+  }
+
+  return [...byId.values()]
+    .sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    )
+    .slice(0, maxTotal);
+}

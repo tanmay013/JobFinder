@@ -1,0 +1,18 @@
+[
+  {
+    "postId": "sample-001",
+    "author": "Recruiter Team",
+    "company": "Example Corp",
+    "date": "2026-06-09T10:00:00.000Z",
+    "postUrl": "https://example.com/posts/sample-001",
+    "content": "Hiring a Senior Frontend Engineer with 3+ years React experience. Email careers@example.com to apply."
+  },
+  {
+    "postId": "sample-002",
+    "author": "Jane Doe",
+    "company": "StartupXYZ",
+    "date": "2026-06-08T14:00:00.000Z",
+    "postUrl": "https://example.com/posts/sample-002",
+    "content": "We're looking for a Frontend Developer (2-4 years). Great team, remote OK. jane@startupxyz.io"
+  }
+]
