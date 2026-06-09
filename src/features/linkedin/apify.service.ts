@@ -1,4 +1,6 @@
-import { getRoleLinkedInConfig, isLinkedInConfigured, linkedInConfig } from "./config";
+import "server-only";
+
+import { getRoleLinkedInConfig, getLinkedInConfig, isLinkedInConfigured } from "./config";
 import { mapLinkedInPosts } from "./mapper";
 import type { ApifyLinkedInPost } from "./types";
 import type { JobRole, RawPost } from "@/features/posts/types";
@@ -7,12 +9,12 @@ function buildActorInput(
   limit: number,
   searchQueries: string[],
 ): Record<string, unknown> {
-  const actorId = linkedInConfig.apifyActorId.toLowerCase();
+  const config = getLinkedInConfig();
+  const actorId = config.apifyActorId.toLowerCase();
   const queries =
     searchQueries.length > 0 ? searchQueries : ["hiring frontend engineer"];
 
   if (actorId.includes("harvestapi") || actorId.includes("linkedin-post-search")) {
-    // Fewer queries = smaller Apify payload, less memory pressure
     const activeQueries = queries.slice(0, 3);
     const maxPostsPerQuery = Math.max(
       5,
@@ -22,7 +24,7 @@ function buildActorInput(
     return {
       searchQueries: activeQueries,
       maxPosts: maxPostsPerQuery,
-      postedLimit: linkedInConfig.postedLimit,
+      postedLimit: config.postedLimit,
       sortBy: "date",
       scrapeReactions: false,
       scrapeComments: false,
@@ -40,7 +42,7 @@ function buildActorInput(
   }
 
   throw new Error(
-    `Unsupported Apify actor "${linkedInConfig.apifyActorId}". Use harvestapi~linkedin-post-search for LinkedIn posts.`,
+    `Unsupported Apify actor "${config.apifyActorId}". Use harvestapi~linkedin-post-search for LinkedIn posts.`,
   );
 }
 
@@ -88,9 +90,10 @@ export async function fetchLinkedInPostsFromApify(
     return [];
   }
 
+  const config = getLinkedInConfig();
   const { searchQueries } = getRoleLinkedInConfig(role);
-  const actorId = encodeURIComponent(linkedInConfig.apifyActorId);
-  const url = `${linkedInConfig.apifyBaseUrl}/v2/acts/${actorId}/run-sync-get-dataset-items?token=${linkedInConfig.apifyToken}`;
+  const actorId = encodeURIComponent(config.apifyActorId);
+  const url = `${config.apifyBaseUrl}/v2/acts/${actorId}/run-sync-get-dataset-items?token=${config.apifyToken}`;
 
   const response = await fetch(url, {
     method: "POST",

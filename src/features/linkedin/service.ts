@@ -1,3 +1,5 @@
+import "server-only";
+
 import { fetchLinkedInPostsFromApify } from "./apify.service";
 import {
   getNextFetchAt,
@@ -7,12 +9,11 @@ import {
   shouldFetchFromApify,
   writeCache,
 } from "./cache";
-import { isLinkedInConfigured, linkedInConfig } from "./config";
+import { getLinkedInConfig, isLinkedInConfigured } from "./config";
 import type { LinkedInFetchMeta, LinkedInPostsResult } from "./types";
 import type { JobRole, RawPost } from "@/features/posts/types";
 
 interface GetLinkedInPostsOptions {
-  /** Manual refresh — still serves local file if data exists and is fresh. */
   refresh?: boolean;
   role?: JobRole;
 }
@@ -22,12 +23,13 @@ function buildMeta(
   cached: boolean,
   totalStored: number,
 ): LinkedInFetchMeta {
+  const config = getLinkedInConfig();
   return {
     cached,
     lastFetchedAt,
     nextFetchAt: getNextFetchAt(lastFetchedAt),
-    fetchIntervalHours: linkedInConfig.fetchIntervalHours,
-    maxPostsPerFetch: linkedInConfig.maxPostsPerFetch,
+    fetchIntervalHours: config.fetchIntervalHours,
+    maxPostsPerFetch: config.maxPostsPerFetch,
     totalStored,
   };
 }
@@ -46,12 +48,13 @@ function buildResult(
 }
 
 async function fetchAndPersist(role: JobRole): Promise<LinkedInPostsResult> {
+  const config = getLinkedInConfig();
   const fetched = await fetchLinkedInPostsFromApify(
-    linkedInConfig.maxPostsPerFetch,
+    config.maxPostsPerFetch,
     role,
   );
 
-  const merged = mergePosts([], fetched, linkedInConfig.maxPostsPerFetch);
+  const merged = mergePosts([], fetched, config.maxPostsPerFetch);
 
   const lastFetchedAt = new Date().toISOString();
   await writeCache({ posts: merged, lastFetchedAt }, role);

@@ -1,15 +1,16 @@
+import "server-only";
+
 import type { JobRole } from "@/features/posts/types";
 
-function env(key: string, fallback = ""): string {
-  return process.env[key]?.trim() ?? fallback;
-}
-
-function parseSearchQueries(raw: string): string[] {
-  return raw
-    .split(",")
-    .map((q) => q.trim())
-    .filter(Boolean);
-}
+type PostedLimit =
+  | "any"
+  | "1h"
+  | "24h"
+  | "week"
+  | "month"
+  | "3months"
+  | "6months"
+  | "year";
 
 const DEFAULT_FRONTEND_SEARCH_QUERIES = [
   "hiring frontend engineer",
@@ -37,71 +38,83 @@ const DEFAULT_QA_SEARCH_QUERIES = [
   "hiring QA lead",
 ];
 
+/** Runtime env lookup — avoids Next.js build-time inlining of secret values. */
+function readEnv(name: string): string {
+  const env = process.env as Record<string, string | undefined>;
+  return env[name]?.trim() ?? "";
+}
+
+function parseSearchQueries(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((q) => q.trim())
+    .filter(Boolean);
+}
+
+function parseIntEnv(name: string, fallback: number, min: number, max?: number): number {
+  const parsed = Number.parseInt(readEnv(name), 10);
+  const value = Number.isNaN(parsed) ? fallback : parsed;
+  const clamped = Math.max(min, value);
+  return max === undefined ? clamped : Math.min(max, clamped);
+}
+
+function parseFloatEnv(name: string, fallback: number, min: number): number {
+  const parsed = Number.parseFloat(readEnv(name));
+  const value = Number.isNaN(parsed) ? fallback : parsed;
+  return Math.max(min, value);
+}
+
 export interface RoleLinkedInConfig {
   searchQueries: string[];
   cacheFile: string;
 }
 
-export function getRoleLinkedInConfig(role: JobRole): RoleLinkedInConfig {
-  if (role === "qa") {
-    return {
-      searchQueries: parseSearchQueries(
-        env("LINKEDIN_QA_SEARCH_QUERIES", DEFAULT_QA_SEARCH_QUERIES.join(",")),
-      ),
-      cacheFile: env("LINKEDIN_QA_CACHE_FILE", "data/linkedin-posts-qa.json"),
-    };
-  }
+export interface LinkedInConfig {
+  apifyToken: string;
+  apifyActorId: string;
+  apifyBaseUrl: string;
+  postedLimit: PostedLimit;
+  maxPostsPerFetch: number;
+  maxResults: number;
+  minExperienceYears: number;
+  fetchIntervalHours: number;
+}
+
+export function getLinkedInConfig(): LinkedInConfig {
+  const postedLimit = readEnv("LINKEDIN_POSTED_LIMIT") || "week";
 
   return {
-    searchQueries: parseSearchQueries(
-      env(
-        "LINKEDIN_SEARCH_QUERIES",
-        DEFAULT_FRONTEND_SEARCH_QUERIES.join(","),
-      ),
-    ),
-    cacheFile: env("LINKEDIN_CACHE_FILE", "data/linkedin-posts.json"),
+    apifyToken: readEnv("APIFY_API_TOKEN"),
+    apifyActorId: readEnv("APIFY_ACTOR_ID") || "harvestapi~linkedin-post-search",
+    apifyBaseUrl: readEnv("APIFY_BASE_URL") || "https://api.apify.com",
+    postedLimit: postedLimit as PostedLimit,
+    maxPostsPerFetch: parseIntEnv("LINKEDIN_MAX_POSTS_PER_FETCH", 50, 1, 50),
+    maxResults: parseIntEnv("LINKEDIN_MAX_RESULTS", 50, 1, 50),
+    minExperienceYears: parseFloatEnv("LINKEDIN_MIN_EXPERIENCE_YEARS", 2.5, 0),
+    fetchIntervalHours: parseIntEnv("LINKEDIN_FETCH_INTERVAL_HOURS", 6, 1),
   };
 }
 
-export const linkedInConfig = {
-  apifyToken: env("APIFY_API_TOKEN"),
-  apifyActorId: env("APIFY_ACTOR_ID", "harvestapi~linkedin-post-search"),
-  apifyBaseUrl: env("APIFY_BASE_URL", "https://api.apify.com"),
-  postedLimit: env("LINKEDIN_POSTED_LIMIT", "week") as
-    | "any"
-    | "1h"
-    | "24h"
-    | "week"
-    | "month"
-    | "3months"
-    | "6months"
-    | "year",
-  /** Raw posts to pull from Apify per fetch (deduped after). */
-  maxPostsPerFetch: Math.min(
-    50,
-    Math.max(
-      1,
-      Number.parseInt(env("LINKEDIN_MAX_POSTS_PER_FETCH", "50"), 10) || 50,
+export function getRoleLinkedInConfig(role: JobRole): RoleLinkedInConfig {
+  if (role === "qa") {
+    const queries = readEnv("LINKEDIN_QA_SEARCH_QUERIES");
+    return {
+      searchQueries: parseSearchQueries(
+        queries || DEFAULT_QA_SEARCH_QUERIES.join(","),
+      ),
+      cacheFile: readEnv("LINKEDIN_QA_CACHE_FILE") || "data/linkedin-posts-qa.json",
+    };
+  }
+
+  const queries = readEnv("LINKEDIN_SEARCH_QUERIES");
+  return {
+    searchQueries: parseSearchQueries(
+      queries || DEFAULT_FRONTEND_SEARCH_QUERIES.join(","),
     ),
-  ),
-  /** Max matching posts shown after filtering. */
-  maxResults: Math.min(
-    50,
-    Math.max(
-      1,
-      Number.parseInt(env("LINKEDIN_MAX_RESULTS", "50"), 10) || 50,
-    ),
-  ),
-  minExperienceYears: Math.max(
-    0,
-    Number.parseFloat(env("LINKEDIN_MIN_EXPERIENCE_YEARS", "2.5")) || 2.5,
-  ),
-  fetchIntervalHours: Math.max(
-    1,
-    Number.parseInt(env("LINKEDIN_FETCH_INTERVAL_HOURS", "6"), 10) || 6,
-  ),
-} as const;
+    cacheFile: readEnv("LINKEDIN_CACHE_FILE") || "data/linkedin-posts.json",
+  };
+}
 
 export function isLinkedInConfigured(): boolean {
-  return Boolean(linkedInConfig.apifyToken);
+  return Boolean(getLinkedInConfig().apifyToken);
 }

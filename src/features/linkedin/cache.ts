@@ -1,6 +1,8 @@
+import "server-only";
+
 import { promises as fs } from "fs";
 import path from "path";
-import { getRoleLinkedInConfig, linkedInConfig } from "./config";
+import { getRoleLinkedInConfig, getLinkedInConfig } from "./config";
 import type { LinkedInCacheState } from "./types";
 import type { JobRole, RawPost } from "@/features/posts/types";
 
@@ -15,7 +17,7 @@ function cachePath(role: JobRole): string {
 }
 
 export function fetchIntervalMs(): number {
-  return linkedInConfig.fetchIntervalHours * 60 * 60 * 1000;
+  return getLinkedInConfig().fetchIntervalHours * 60 * 60 * 1000;
 }
 
 export function hasLocalData(cache: LinkedInCacheState): boolean {
@@ -33,13 +35,8 @@ export function shouldFetchFromApify(
   cache: LinkedInCacheState,
   refresh: boolean,
 ): boolean {
-  // No local data — always fetch, regardless of interval or refresh flag
   if (!hasLocalData(cache)) return true;
-
-  // Has local data but stale — fetch
   if (!isCacheFresh(cache.lastFetchedAt)) return true;
-
-  // Has fresh local data — serve file (manual refresh also uses file)
   void refresh;
   return false;
 }

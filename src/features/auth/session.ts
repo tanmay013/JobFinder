@@ -1,8 +1,9 @@
 /**
  * Session secret used by middleware only — never import auth credentials here.
- * Keeps AUTH_PASSWORD out of the Edge middleware bundle.
+ * Uses bracket access so Next.js does not inline the value at build time.
  */
 export function getSessionSecret(): string | null {
-  const secret = process.env.AUTH_SESSION_SECRET?.trim();
+  const env = process.env as Record<string, string | undefined>;
+  const secret = env["AUTH_SESSION_SECRET"]?.trim();
   return secret || null;
 }

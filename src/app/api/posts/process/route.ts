@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readCache } from "@/features/linkedin/cache";
-import { linkedInConfig } from "@/features/linkedin/config";
+import { getLinkedInConfig } from "@/features/linkedin/config";
 import { computeStats, processPosts } from "@/features/posts/processing";
 import type { PostFilters, RawPost } from "@/features/posts/types";
 
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     const processed = processPosts(
       posts,
       filters,
-      linkedInConfig.maxResults,
+      getLinkedInConfig().maxResults,
     );
     const stats = computeStats(processed);
 

@@ -1,0 +1,5 @@
+# Netlify build — @netlify/plugin-nextjs is auto-detected for Next.js apps.
+# Secret scanning: exclude webpack cache (not deployed) and non-sensitive config keys.
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/**,.next/cache/**"
+  SECRETS_SCAN_OMIT_KEYS = "LINKEDIN_POSTED_LIMIT,APIFY_ACTOR_ID,APIFY_BASE_URL,LINKEDIN_SEARCH_QUERIES,LINKEDIN_QA_SEARCH_QUERIES,LINKEDIN_MAX_POSTS_PER_FETCH,LINKEDIN_MAX_RESULTS,LINKEDIN_MIN_EXPERIENCE_YEARS,LINKEDIN_FETCH_INTERVAL_HOURS,LINKEDIN_CACHE_FILE,LINKEDIN_QA_CACHE_FILE,AUTH_ID"
