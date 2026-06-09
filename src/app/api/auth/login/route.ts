@@ -3,7 +3,8 @@ import {
   AUTH_COOKIE,
   AUTH_COOKIE_MAX_AGE,
 } from "@/features/auth/constants";
-import { computeAuthToken, getAuthCredentials } from "@/features/auth/token";
+import { getAuthCredentials } from "@/features/auth/credentials";
+import { getSessionSecret } from "@/features/auth/session";
 
 interface LoginBody {
   id?: string;
@@ -18,9 +19,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
+  const creds = getAuthCredentials();
+  const sessionSecret = getSessionSecret();
+
+  if (!creds || !sessionSecret) {
+    return NextResponse.json(
+      { error: "Authentication is not configured on the server" },
+      { status: 500 },
+    );
+  }
+
   const id = body.id?.trim() ?? "";
   const password = body.password ?? "";
-  const creds = getAuthCredentials();
 
   if (id !== creds.id || password !== creds.password) {
     return NextResponse.json(
@@ -29,10 +39,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const token = await computeAuthToken(creds.id, creds.password);
   const response = NextResponse.json({ ok: true });
 
-  response.cookies.set(AUTH_COOKIE, token, {
+  response.cookies.set(AUTH_COOKIE, sessionSecret, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",

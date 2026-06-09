@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { AUTH_COOKIE } from "@/features/auth/constants";
-import { getExpectedAuthToken } from "@/features/auth/token";
+import { getSessionSecret } from "@/features/auth/session";
 
 const PUBLIC_PATHS = ["/login"];
 
@@ -14,14 +14,13 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Auth endpoints must stay reachable so users can log in / out.
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
 
-  const expected = await getExpectedAuthToken();
+  const expected = getSessionSecret();
   const token = request.cookies.get(AUTH_COOKIE)?.value;
-  const isAuthenticated = Boolean(token) && token === expected;
+  const isAuthenticated = Boolean(expected) && Boolean(token) && token === expected;
   const onPublicPath = isPublicPath(pathname);
 
   if (!isAuthenticated && !onPublicPath) {
