@@ -1,5 +1,6 @@
 export interface MailPlaceholders {
   roleName: string;
+  applicantName: string;
   hiringManagerName: string;
   companyName: string;
   whyThisRoleInterestsYou: string;

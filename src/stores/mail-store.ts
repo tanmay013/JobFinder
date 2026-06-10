@@ -79,7 +79,7 @@ export const useMailStore = create<MailState>()(
     }),
     {
       name: "job-finder-mail",
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const state = persisted as {
           jobRole?: JobRole;
@@ -108,6 +108,20 @@ export const useMailStore = create<MailState>()(
 
         if (version < 3) {
           state.jobRole = "frontend";
+        }
+
+        if (version < 4) {
+          const jobRole = state.jobRole ?? "frontend";
+          const defaults = getMailDefaultsForJobRole(jobRole);
+          if (state.placeholders && !state.placeholders.applicantName) {
+            state.placeholders.applicantName = defaults.placeholders.applicantName;
+          }
+          if (
+            state.template?.subject &&
+            !state.template.subject.includes("{{APPLICANT_NAME}}")
+          ) {
+            state.template.subject = defaults.template.subject;
+          }
         }
 
         return persisted;

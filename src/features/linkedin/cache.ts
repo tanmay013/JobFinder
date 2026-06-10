@@ -60,9 +60,9 @@ export function shouldFetchFromApify(
   cache: LinkedInCacheState,
   refresh: boolean,
 ): boolean {
+  if (refresh) return true;
   if (!hasLocalData(cache)) return true;
   if (!isCacheFresh(cache.lastFetchedAt)) return true;
-  void refresh;
   return false;
 }
 

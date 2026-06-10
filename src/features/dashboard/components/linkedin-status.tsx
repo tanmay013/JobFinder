@@ -7,7 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { useRefreshLinkedInPosts } from "@/features/posts/hooks/use-posts";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
-export function LinkedInStatus() {
+interface LinkedInStatusProps {
+  isLoading?: boolean;
+}
+
+export function LinkedInStatus({ isLoading = false }: LinkedInStatusProps) {
   const linkedInMeta = useDashboardStore((s) => s.linkedInMeta);
   const fetchError = useDashboardStore((s) => s.fetchError);
   const dataSource = useDashboardStore((s) => s.dataSource);
@@ -48,7 +52,7 @@ export function LinkedInStatus() {
         <Button
           variant="outline"
           size="sm"
-          disabled={!canFetchFromApify || refreshMutation.isPending}
+          disabled={!canFetchFromApify || isLoading || refreshMutation.isPending}
           onClick={() => refreshMutation.mutate()}
           title={
             !hasLocalData
@@ -59,7 +63,7 @@ export function LinkedInStatus() {
           }
         >
           <RefreshCw
-            className={`h-4 w-4 ${refreshMutation.isPending ? "animate-spin" : ""}`}
+            className={`h-4 w-4 ${isLoading || refreshMutation.isPending ? "animate-spin" : ""}`}
           />
           {canFetchFromApify ? "Fetch now" : "Cached"}
         </Button>

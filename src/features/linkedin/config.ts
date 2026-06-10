@@ -25,18 +25,25 @@ const DEFAULT_FRONTEND_SEARCH_QUERIES = [
   "hiring next.js developer",
 ];
 
+/** LinkedIn limits each search query to 85 characters (Apify harvestapi actor). */
+const LINKEDIN_MAX_QUERY_LENGTH = 85;
+
 const DEFAULT_QA_SEARCH_QUERIES = [
-  "hiring QA engineer",
-  "hiring SDET",
-  "hiring QA automation engineer",
-  "hiring SDET engineer",
-  "hiring quality assurance engineer",
-  "hiring test automation engineer",
-  "hiring software development engineer in test",
-  "hiring automation tester",
-  "hiring senior SDET",
-  "hiring QA lead",
-];
+  '(hiring OR "we are hiring") AND SDET AND Selenium AND India',
+  '(hiring OR "we are hiring") AND SDET AND Playwright AND remote',
+  '(hiring OR "we are hiring") AND "QA automation" AND Cypress AND Pune',
+  '(hiring OR "we are hiring") AND SDET AND Java AND Mumbai',
+  '(hiring OR "we are hiring") AND SDET AND Appium AND Delhi',
+  '(hiring OR "we are hiring") AND "test automation" AND Kolkata',
+  '(hiring OR "we are hiring") AND SDET AND TestNG AND Gurugram',
+  '(hiring OR "we are hiring") AND "QA engineer" AND Cypress AND remote',
+  '("urgent hiring" OR hiring) AND SDET AND Java AND NCR',
+  '(hiring OR "we are hiring") AND SDET AND "API testing" AND India',
+  '(hiring OR "we are hiring") AND SDET AND Cucumber AND Pune',
+  '(hiring OR "we are hiring") AND SDET AND Maestro AND Mumbai',
+  '"we are hiring" AND SDET AND Selenium AND remote',
+  '(hiring OR "we are hiring") AND SDET AND "Rest Assured" AND India',
+].filter((query) => query.length <= LINKEDIN_MAX_QUERY_LENGTH);
 
 /** Runtime env lookup — avoids Next.js build-time inlining of secret values. */
 function readEnv(name: string): string {
@@ -46,9 +53,10 @@ function readEnv(name: string): string {
 
 function parseSearchQueries(raw: string): string[] {
   return raw
-    .split(",")
+    .split(/[|,]/)
     .map((q) => q.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((q) => q.length <= LINKEDIN_MAX_QUERY_LENGTH);
 }
 
 function parseIntEnv(name: string, fallback: number, min: number, max?: number): number {

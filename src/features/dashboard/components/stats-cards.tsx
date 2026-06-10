@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Mail, Search } from "lucide-react";
+import { Building2, Loader2, Mail, Search } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -61,8 +61,12 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight">
-                {isLoading ? "—" : stats[card.key]}
+              <div className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+                {isLoading ? (
+                  <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+                ) : (
+                  stats[card.key]
+                )}
               </div>
               <CardDescription className="mt-1">{card.description}</CardDescription>
             </CardContent>

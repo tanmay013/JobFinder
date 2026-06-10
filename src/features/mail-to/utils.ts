@@ -2,6 +2,7 @@ import type { MailPlaceholders, MailTemplate } from "./types";
 
 const PLACEHOLDER_MAP: Record<string, keyof MailPlaceholders> = {
   "{{ROLE_NAME}}": "roleName",
+  "{{APPLICANT_NAME}}": "applicantName",
   "{{HIRING_MANAGER_NAME}}": "hiringManagerName",
   "{{HIRING_MANAGER_NAME / HIRING_TEAM}}": "hiringManagerName",
   "{{COMPANY_NAME}}": "companyName",

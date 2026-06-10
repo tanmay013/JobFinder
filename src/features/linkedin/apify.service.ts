@@ -5,6 +5,8 @@ import { mapLinkedInPosts } from "./mapper";
 import type { ApifyLinkedInPost } from "./types";
 import type { JobRole, RawPost } from "@/features/posts/types";
 
+const MAX_SEARCH_QUERIES_PER_RUN = 10;
+
 function buildActorInput(
   limit: number,
   searchQueries: string[],
@@ -15,7 +17,7 @@ function buildActorInput(
     searchQueries.length > 0 ? searchQueries : ["hiring frontend engineer"];
 
   if (actorId.includes("harvestapi") || actorId.includes("linkedin-post-search")) {
-    const activeQueries = queries.slice(0, 3);
+    const activeQueries = queries.slice(0, MAX_SEARCH_QUERIES_PER_RUN);
     const maxPostsPerQuery = Math.max(
       5,
       Math.ceil(limit / Math.max(1, activeQueries.length)),

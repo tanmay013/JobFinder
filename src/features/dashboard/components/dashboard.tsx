@@ -7,7 +7,9 @@ import { usePaginatedPosts } from "@/features/posts/hooks/use-paginated-posts";
 import {
   useLinkedInPosts,
   useProcessPosts,
+  useRefreshLinkedInPosts,
 } from "@/features/posts/hooks/use-posts";
+import { DashboardLoader } from "./dashboard-loader";
 import { LinkedInStatus } from "./linkedin-status";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { ExportMenu } from "./export-menu";
@@ -27,6 +29,7 @@ export function Dashboard() {
   const { isLoading: isLoadingLinkedIn } = useLinkedInPosts();
   const { mutate: processPosts, isPending: isProcessingPosts } =
     useProcessPosts();
+  const { isPending: isRefreshingLinkedIn } = useRefreshLinkedInPosts();
   const pagination = usePaginatedPosts();
 
   // Re-process when filters change (server reads cache for LinkedIn)
@@ -45,7 +48,15 @@ export function Dashboard() {
     [processedPosts],
   );
 
-  const isProcessing = isProcessingPosts || isLoadingLinkedIn;
+  const isFetchingLinkedIn = isLoadingLinkedIn || isRefreshingLinkedIn;
+  const isProcessing = isProcessingPosts || isFetchingLinkedIn;
+
+  const loaderMessage =
+    isFetchingLinkedIn && isProcessingPosts
+      ? "Fetching and processing posts…"
+      : isFetchingLinkedIn
+        ? "Fetching posts from LinkedIn…"
+        : "Processing and scoring posts…";
 
   return (
     <div className="app-shell">
@@ -66,7 +77,7 @@ export function Dashboard() {
           </div>
           <div className="flex flex-col gap-3 lg:items-end">
             <div className="flex flex-wrap items-center gap-2">
-              <LinkedInStatus />
+              <LinkedInStatus isLoading={isProcessing} />
               <ThemeToggle />
               <LogoutButton />
             </div>
@@ -76,6 +87,8 @@ export function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 md:px-6">
+        {isProcessing && <DashboardLoader message={loaderMessage} />}
+
         <StatsCards stats={stats} isLoading={isProcessing} />
         <FiltersPanel />
 

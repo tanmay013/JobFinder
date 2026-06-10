@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { format } from "date-fns";
-import { ExternalLink, Mail } from "lucide-react";
+import { ExternalLink, Loader2, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,8 +40,13 @@ export function PostsTable({ posts, isLoading }: PostsTableProps) {
 
   if (isLoading) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-xl border bg-card text-muted-foreground">
-        Processing posts…
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex h-48 flex-col items-center justify-center gap-3 rounded-xl border bg-card text-muted-foreground"
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm font-medium">Loading results…</p>
       </div>
     );
   }
