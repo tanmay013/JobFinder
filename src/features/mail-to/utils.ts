@@ -73,6 +73,11 @@ export function buildFilledMail(
     subject: fillTemplate(template.subject, placeholders),
     body: fillTemplate(template.body, placeholders, "plain"),
     bodyHtml: fillTemplate(template.body, placeholders, "html"),
+    coverLetterBody: fillTemplate(
+      template.coverLetterBody,
+      placeholders,
+      "plain",
+    ),
   };
 }
 
@@ -170,4 +175,65 @@ export async function copyToClipboard(
   }
 
   await navigator.clipboard.writeText(text);
+}
+
+function slugifyFilename(value: string): string {
+  return value
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80);
+}
+
+export function buildCoverLetterFilename(
+  applicantName: string,
+  companyName?: string,
+): string {
+  const name = slugifyFilename(applicantName) || "Cover-Letter";
+  const company = slugifyFilename(companyName ?? "");
+  return company
+    ? `Cover-Letter-${name}-${company}.pdf`
+    : `Cover-Letter-${name}.pdf`;
+}
+
+export async function downloadCoverLetterPdf(
+  body: string,
+  filename: string,
+): Promise<void> {
+  const { jsPDF } = await import("jspdf");
+
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const margin = 72;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const maxWidth = pageWidth - margin * 2;
+  const lineHeight = 16;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+
+  const paragraphs = body.split("\n");
+  let y = margin;
+
+  for (const paragraph of paragraphs) {
+    const lines = doc.splitTextToSize(paragraph, maxWidth);
+
+    if (lines.length === 0) {
+      y += lineHeight;
+      continue;
+    }
+
+    for (const line of lines) {
+      if (y > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+
+      doc.text(line, margin, y);
+      y += lineHeight;
+    }
+  }
+
+  doc.save(filename);
 }

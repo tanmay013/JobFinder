@@ -5,7 +5,9 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Copy,
+  Download,
   FileText,
+  Loader2,
   Paperclip,
   RotateCcw,
   Send,
@@ -17,11 +19,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PLACEHOLDER_HINTS } from "@/features/mail-to/constants";
 import {
+  buildCoverLetterFilename,
   buildFilledMail,
   buildGmailComposeUrl,
   buildMailtoUrl,
   bodyHtmlToDisplay,
   copyToClipboard,
+  downloadCoverLetterPdf,
   openComposeLink,
 } from "@/features/mail-to/utils";
 import { useQueryPlaceholders } from "@/features/mail-to/hooks/use-query-placeholders";
@@ -41,6 +45,7 @@ export function MailComposePage() {
 
   const [copied, setCopied] = useState(false);
   const [mailtoNotice, setMailtoNotice] = useState<string | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const filled = useMemo(
     () => buildFilledMail(template, activePlaceholders),
@@ -94,6 +99,19 @@ export function MailComposePage() {
     await copyToClipboard(text, html);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadCoverLetter = async () => {
+    setIsDownloadingPdf(true);
+    try {
+      const filename = buildCoverLetterFilename(
+        activePlaceholders.applicantName,
+        activePlaceholders.companyName,
+      );
+      await downloadCoverLetterPdf(filled.coverLetterBody, filename);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   return (
@@ -265,13 +283,27 @@ export function MailComposePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="body-template">Body template</Label>
+                <Label htmlFor="body-template">Email body template</Label>
                 <Textarea
                   id="body-template"
-                  rows={16}
+                  rows={12}
                   className="font-mono text-sm"
                   value={template.body}
                   onChange={(e) => setTemplate({ body: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cover-letter-template">
+                  Cover letter template (PDF)
+                </Label>
+                <Textarea
+                  id="cover-letter-template"
+                  rows={16}
+                  className="font-mono text-sm"
+                  value={template.coverLetterBody}
+                  onChange={(e) =>
+                    setTemplate({ coverLetterBody: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -283,7 +315,7 @@ export function MailComposePage() {
           <section className="sticky top-6 rounded-xl border bg-card p-4 shadow-sm md:p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
               <FileText className="h-5 w-5" />
-              Preview
+              Email preview
             </h2>
 
             <div className="mb-4 space-y-1 rounded-lg bg-muted/50 p-3">
@@ -363,6 +395,32 @@ export function MailComposePage() {
             )}
           </section>
         </div>
+
+        <section className="rounded-xl border bg-card p-4 shadow-sm md:col-span-2 md:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Cover letter PDF</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Download the detailed cover letter as a PDF to attach with your
+                application. The email preview above uses the shorter mail body.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0"
+              disabled={isDownloadingPdf}
+              onClick={() => void handleDownloadCoverLetter()}
+            >
+              {isDownloadingPdf ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isDownloadingPdf ? "Generating PDF…" : "Download cover letter (PDF)"}
+            </Button>
+          </div>
+        </section>
       </main>
     </div>
   );

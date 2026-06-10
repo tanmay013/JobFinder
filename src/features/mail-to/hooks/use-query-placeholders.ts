@@ -73,10 +73,7 @@ export function useQueryPlaceholders() {
     setPlaceholders,
   ]);
 
-  const activePlaceholders = useMemo(
-    () => ({ ...placeholders, ...queryOverrides }),
-    [placeholders, queryOverrides],
-  );
+  const activePlaceholders = placeholders;
 
   return { activePlaceholders, queryOverrides, jobRole };
 }

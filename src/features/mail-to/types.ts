@@ -18,4 +18,5 @@ export interface MailAttachments {
 export interface MailTemplate {
   subject: string;
   body: string;
+  coverLetterBody: string;
 }
